@@ -1,0 +1,1 @@
+cl /EHsc /DBUILDDLL mapper.cpp /LD /link lua.lib
