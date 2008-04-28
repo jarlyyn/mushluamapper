@@ -24,22 +24,25 @@ mapper::~mapper()
 void mapper::delsteps(struct step* steps)
 {
 	struct step* tmpstep;
-	while(steps){
-		tmpstep=steps;
-		steps=steps->next;
-		delete tmpstep;
+	struct step* tmpstep2;
+	tmpstep=steps;
+	while(tmpstep){
+		tmpstep2=tmpstep;
+		tmpstep=tmpstep->next;
+		delete tmpstep2;
 	};
+	steps=NULL;
 };
 
 string mapper::getpath(int fr,int to)
 {
-	struct	roadmap roadmap_tofill ={0,NULL};
-	struct step* steps;
-	struct step* newsteps;
+	struct	roadmap roadmap_tofill ={NULL};
+	struct step* steps=NULL;
+	struct step* newsteps=NULL;
 	struct step* walk;
 	struct step* newwalk;
-	struct step* steps_back;
-	struct step* newsteps_back;
+	struct step* steps_back=NULL;
+	struct step* newsteps_back=NULL;
 	struct step* walk_back;
 	struct step* newwalk_back;
 	struct path* exit;
@@ -49,13 +52,37 @@ string mapper::getpath(int fr,int to)
 	int i;
 	int link=-1;
 	if ((fr==to)||(fr<0)||(to<0)||(fr>room_count-1)||(to>room_count-1)) {return "";};
-	steps=(struct step*)malloc(stepsize);
-	steps_back=(struct step*)malloc(stepsize);
-	steps->id=fr;
-	steps->next=NULL;
+	exit=rooms[fr].firstexit;
+	while (exit)
+	{
+		if (steps)
+		{
+			walk->next=(struct step*)malloc(stepsize);
+			walk=walk->next;
+		}else{
+			steps=walk=(struct step*)malloc(stepsize);
+		};
+		walk->next=NULL;
+		walk->delay=exit->delay;
+		walk->path=exit;
+		exit=exit->next;
+	};
 	roadmaps[fr].path=NULL;
-	steps_back->id=to;
-	steps_back->next=NULL;
+	exit=rooms_back[to].firstexit;
+	while (exit)
+	{
+		if (steps_back)
+		{
+			walk_back->next=(struct step*)malloc(stepsize);
+			walk_back=walk_back->next;
+		}else{
+			steps_back=walk_back=(struct step*)malloc(stepsize);
+		};
+		walk_back->next=NULL;
+		walk_back->delay=exit->delay;
+		walk_back->path=exit;
+		exit=exit->backnext;	
+	};
 	roadmaps_back[to].path=NULL;
 	for(i=0;i<room_count;i++)
 	{
@@ -63,124 +90,163 @@ string mapper::getpath(int fr,int to)
 		roadmaps_back[i]=roadmap_tofill;
 
 	};
+
 	do
 	{
 		steps_count=0;
 		newwalk=newsteps=NULL;
 		walk = steps;
-		
 		while (walk)
 		{
-			exit=rooms[walk->id].firstexit;
-			while (exit)
+			if ((walk->delay)&&((walk->next)||(steps!=walk)))
 			{
-					if (roadmaps[exit->to].path==NULL)
-					{
-						roadmaps[exit->to].path=exit;
-						if ((roadmaps_back[exit->to].path)||(exit->to==to))
-						{
-							delsteps(steps);
-							delsteps(newsteps);
-							link=exit->to;
-							while(exit){
-								tmpstring2=exit->content;
-								tmpstring2+=vchar[7];
-								tmpstring=tmpstring2+tmpstring;
-								if (exit->from==fr){
-									exit=NULL;
-								}else{
-									exit=roadmaps[exit->from].path;
-								};
-							};
-							exit=roadmaps_back[link].path;
-							while(exit){
-								tmpstring=tmpstring+exit->content;
-								tmpstring=tmpstring+vchar[7];
-								if (exit->to==to){
-									exit=NULL;
-								}else{
-									exit=roadmaps_back[exit->to].path;
-								};
-								
-							};
-							return tmpstring;
-						};
-						steps_count++;
-						if (newsteps)
-						{
-							newwalk->next=(struct step*)malloc(stepsize);
-							newwalk=newwalk->next;
-						}else{
-							newsteps=newwalk=(struct step*)malloc(stepsize);
-						};
-						newwalk->next=NULL;
-						newwalk->id=exit->to;
-					};	
-				exit=exit->next;	
+				walk->delay--;
+				if (newsteps)
+				{
+					newwalk->next=(struct step*)malloc(stepsize);
+					newwalk=newwalk->next;
+				}else{
+					newsteps=newwalk=(struct step*)malloc(stepsize);
 				};
-			walk=walk->next;
+				newwalk->next=NULL;
+				newwalk->delay=walk->delay;
+				newwalk->path=walk->path;
+				walk=walk->next;
+				steps_count++;
+				continue;						
+			}
+			if (roadmaps[walk->path->to].path==NULL)
+			{
+				roadmaps[walk->path->to].path=walk->path;
+				if ((roadmaps_back[walk->path->to].path)||(walk->path->to==to))
+				{
+					delsteps(steps);
+					delsteps(newsteps);
+					link=walk->path->to;
+					exit=roadmaps[link].path;
+					while(exit){
+						tmpstring2=exit->content;
+						tmpstring2+=vchar[7];
+						tmpstring=tmpstring2+tmpstring;
+						if (exit->to==to){
+							exit=NULL;
+						}else{
+							exit=roadmaps[exit->from].path;
+						}
+					};
+					exit=roadmaps_back[link].path;
+					while(exit){
+						tmpstring=tmpstring+exit->content;
+						tmpstring=tmpstring+vchar[7];
+						if (exit->to==to){
+							exit=NULL;
+						}else{
+							exit=roadmaps_back[exit->to].path;
+						};
+					};
+					return tmpstring;
+				};
+				steps_count++;
+				exit=rooms[walk->path->to].firstexit;
+				while (exit)
+				{
+					if (newsteps)
+					{
+						newwalk->next=(struct step*)malloc(stepsize);
+						newwalk=newwalk->next;
+					}else{
+						newsteps=newwalk=(struct step*)malloc(stepsize);
+					};
+					newwalk->next=NULL;
+					newwalk->delay=exit->delay;
+					newwalk->path=exit;
+					exit=exit->next;	
+				};
 			};
+			walk=walk->next;
+		};
 		delsteps(steps);
 		steps=newsteps;
 		steps_back_count=0;
-		newwalk_back=newsteps_back=NULL;
+		newwalk_back=NULL;
+		newsteps_back=NULL;
 		walk_back = steps_back;
 		while (walk_back)
 		{
-			exit=rooms_back[walk_back->id].firstexit;
-			while (exit)
+			if ((walk_back->delay)&&((walk_back->next)||(steps_back!=walk_back)))
+			{
+				walk_back->delay--;
+				if (newsteps_back)
 				{
-					if (roadmaps_back[exit->from].path==NULL)
-					{
-						roadmaps_back[exit->from].path=exit;
-						if ((roadmaps[exit->from].path)||(exit->from==fr))
-						{
-							delsteps(steps);
-							delsteps(newsteps);
-							link=exit->to;
-							while(exit){
-								tmpstring2=exit->content;
-								tmpstring2+=vchar[7];
-								tmpstring=tmpstring2+tmpstring;
-								if (exit->from==fr){
-									exit=NULL;
-								}else{
-									exit=roadmaps[exit->from].path;
-								};
-							};
-							exit=roadmaps_back[link].path;
-							while(exit){
-								tmpstring=tmpstring+exit->content;
-								tmpstring=tmpstring+vchar[7];
-								if (exit->to==to){
-									exit=NULL;
-								}else{
-									exit=roadmaps_back[exit->to].path;
-								};
-								
-							};
-							return tmpstring;
-						};
-						steps_count++;
-						if (newsteps_back)
-						{
-							newwalk_back->next=(struct step*)malloc(stepsize);
-							newwalk_back=newwalk_back->next;
-						}else{
-							newsteps_back=newwalk_back=(struct step*)malloc(stepsize);
-							
-						};
-						newwalk_back->next=NULL;
-						newwalk_back->id=exit->to;
-					};	
-				exit=exit->backnext;	
+					newwalk_back->next=(struct step*)malloc(stepsize);
+					newwalk_back=newwalk_back->next;
+				}else{
+					newsteps_back=newwalk_back=(struct step*)malloc(stepsize);
 				};
-			walk_back=walk_back->next;
+				newwalk_back->next=NULL;
+				newwalk_back->delay=walk_back->delay;
+				newwalk_back->path=walk_back->path;
+				walk_back=walk_back->next;
+				steps_back_count++;
+				continue;						
+			}
+
+			if (roadmaps_back[walk_back->path->from].path==NULL)
+			{
+				roadmaps_back[walk_back->path->from].path=walk_back->path;
+				if ((roadmaps[walk_back->path->from].path)||(walk_back->path->from==fr))
+				{
+					delsteps(steps_back);
+					delsteps(newsteps_back);
+					link=walk_back->path->from;
+					exit=roadmaps[link].path;
+					while(exit){
+						tmpstring2=exit->content;
+						tmpstring2+=vchar[7];
+						tmpstring=tmpstring2+tmpstring;
+						if (exit->from==fr){
+							exit=NULL;
+						}else{
+							exit=roadmaps[exit->from].path;
+						}
+					};
+					exit=roadmaps_back[link].path;
+					while(exit){
+						tmpstring=tmpstring+exit->content;
+						tmpstring=tmpstring+vchar[7];
+						if (exit->to==to){
+							exit=NULL;
+						}else{
+							exit=roadmaps_back[exit->to].path;
+						}
+					};
+					return tmpstring;
+				};
+				steps_back_count++;
+				
+				exit=rooms_back[walk_back->path->from].firstexit;
+				while (exit)
+				{
+					if (newsteps_back)
+					{
+						newwalk_back->next=(struct step*)malloc(stepsize);
+						newwalk_back=newwalk_back->next;
+					}else{
+						newsteps_back=newwalk_back=(struct step*)malloc(stepsize);
+					};
+					newwalk_back->next=NULL;
+					newwalk_back->delay=exit->delay;
+					newwalk_back->path=exit;
+					exit=exit->backnext;	
+				};
 			};
+			walk_back=walk_back->next;
+		};
 		delsteps(steps_back);
 		steps_back=newsteps_back;
-
-	} while(link<0&&((steps_count>0)||(steps_back_count>0)));
+	}while(link<0&&((steps_count>0)||(steps_back_count>0)));
+	delsteps(steps);
+	delsteps(steps_back);
 	return "";
 };
 
@@ -280,7 +346,13 @@ void mapper::exit_to_path(string data,int roomid)
 struct path* mapper::makepath(string datatxt, int roomid)
 {
 	int i;
+	int delay=0;
 	struct path* tmppath;
+	i=datatxt.rfind(vchar[6]);
+	if (i!=string::npos){
+		delay=atoi(datatxt.substr(i+1,(datatxt.size()-i)-1).c_str());
+		datatxt.assign(datatxt,0,i);
+	}
 	i=datatxt.find(vchar[3]);
 	if (i==string::npos){
 		return NULL;
@@ -290,9 +362,9 @@ struct path* mapper::makepath(string datatxt, int roomid)
 	tmppath->from=roomid;
 	datatxt.assign(datatxt,i+1,datatxt.size());
 	tmppath->to=atoi(datatxt.c_str());
-	tmppath->delay=0;
+	tmppath->delay=delay;
 	tmppath->next=NULL;
-	if (tmppath->to<0){
+	if ((tmppath->to<0)||(tmppath->to>room_max)){
 		delete tmppath;
 		return NULL;
 	};

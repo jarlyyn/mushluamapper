@@ -16,7 +16,7 @@ using namespace std;
 extern "C" _declspec(dllexport) int luaopen_mapper (lua_State *L);
 #endif
 
- struct bindinfo
+ struct bindinfo		//把符合tag的path绑定到rooms的信息，用来撤销tags用的
 {
 	struct path *bindto;
 	struct path *path;
@@ -56,13 +56,14 @@ extern "C" _declspec(dllexport) int luaopen_mapper (lua_State *L);
 
  struct roadmap
 {
-	int delay;
 	struct path *path;
 
 };
  struct step
 {
 	int id;
+	int delay;
+	struct path *path;
 	struct step *next;
 };
 
