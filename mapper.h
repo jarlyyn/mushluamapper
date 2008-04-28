@@ -29,6 +29,7 @@ extern "C" _declspec(dllexport) int luaopen_mapper (lua_State *L);
 	int delay;				//延时
 	int from;				//起点房间
 	int to;					//终点房间
+	char tag[pathtag_length];
 	struct path *next;			//下一出口
 	struct path *backnext;
 };
@@ -85,22 +86,25 @@ class mapper
 	~mapper();
 	int open(string filename);
 	void save();
-	string getpath(int fr,int to);
+	string getpath(int fr,int to,int _fly);
 	void newmapper();
 	room rooms[room_max];
 	roadmap roadmaps[room_max];
 	roadmap roadmaps_back[room_max];
 	void settags(string _tags);
+	void setflylist(string flylist);
+	struct path *firstfly;
+	struct path *lastfly;
+	void delpaths(struct path* paths);
 	void _debug();
 	class tags tags;
-	private:
+	int room_count;//房间数
 	struct bindinfo *firstbind;
 	struct bindinfo *lastbind;
 	void debind();
 	void bind(struct pathtag *tag);
 	struct room_back rooms_back[room_max];
 	char vchar[8];//文本处理中的控制字符
-	int room_count;//房间数
 	void readdata(char data[infile_buff]);
 	void readexits(string data);
 	void exit_to_path(string data,int roomid);

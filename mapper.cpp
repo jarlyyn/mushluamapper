@@ -19,7 +19,14 @@ strcpy(vchar,"|=,:><%;");//设置默认的控制字符
 }
 mapper::~mapper()
 {
+	int i;
 	debind();
+	delpaths(firstfly);
+	for(i=0;i<room_max;i++)
+	{
+		delpaths(rooms[i].firstexit);
+	}
+	room_count=0;
 }
 void mapper::delsteps(struct step* steps)
 {
@@ -32,9 +39,42 @@ void mapper::delsteps(struct step* steps)
 		delete tmpstep2;
 	};
 	steps=NULL;
-};
+}
+void mapper::delpaths(struct path* paths)
+{
+	struct path* tmppath;
+	while (paths)
+	{
+		tmppath=paths;
+		paths=paths->next;
+		delete tmppath;
+	}
+}
 
-string mapper::getpath(int fr,int to)
+void mapper::setflylist(string flylist)
+{
+	struct path* tmppath;
+	int i;
+	delpaths(firstfly);
+	i=flylist.find(vchar[2]);
+	while (i!=string::npos)
+	{
+		tmppath=makepath(flylist.substr(0,i),0);
+		if(tmppath)
+		{
+			if (firstfly)
+			{
+				lastfly->next=tmppath;
+				lastfly=lastfly->next;
+			}else{
+				firstfly=lastfly=tmppath;
+			}
+		}
+		flylist.assign(flylist,i+1,flylist.size());
+		i=flylist.find(vchar[2]);
+	}
+}
+string mapper::getpath(int fr,int to,int _fly)
 {
 	struct	roadmap roadmap_tofill ={NULL};
 	struct step* steps=NULL;
@@ -67,6 +107,25 @@ string mapper::getpath(int fr,int to)
 		walk->path=exit;
 		exit=exit->next;
 	};
+	if (_fly)
+	{
+		exit=firstfly;
+			while (exit)
+			{
+				exit->from=fr;
+				if (steps)
+				{
+					walk->next=(struct step*)malloc(stepsize);
+					walk=walk->next;
+				}else{
+					steps=walk=(struct step*)malloc(stepsize);
+				};
+				walk->next=NULL;
+				walk->delay=exit->delay;
+				walk->path=exit;
+				exit=exit->next;
+			};
+	}
 	roadmaps[fr].path=NULL;
 	exit=rooms_back[to].firstexit;
 	while (exit)
@@ -257,6 +316,7 @@ int mapper::open(string filename)
 	string in_txt;
 	char txttemp[512];
 	ifstream in_file(filename.c_str());
+	if (!in_file.is_open()) return false;
 	for(int i=0;i<room_max;i++){rooms_back[i].firstexit=rooms_back[i].lastexit=NULL;};
 	room_count=0;
 	do  
@@ -265,7 +325,7 @@ int mapper::open(string filename)
         	readdata(txttemp);
   	}while   (!in_file.eof());
 	in_file.close();
-	return false;
+	return true;
 };
 
 //处理读入的数据
@@ -536,8 +596,8 @@ static int l_openfile(lua_State *L)
 {
 	string _filename;
 	_filename = lua_tostring(L,1);
-	map.open(_filename);
-	return 0;
+	lua_pushnumber(L,map.open(_filename));
+	return 1;
 };
 static int l_settags(lua_State *L)
 {
@@ -546,10 +606,65 @@ static int l_settags(lua_State *L)
 	map.settags(l_tags);
 	return 0;
 };
+static int l_setflylist(lua_State *L)
+{
+	string l_flylist;
+	l_flylist = lua_tostring(L,1);
+	map.setflylist(l_flylist);
+	return 0;
+}
+static int l_getroomid(lua_State *L)
+{
+	int i;
+	int l_count=0;
+	string l_roomname;
+	l_roomname = lua_tostring(L,1);
+	lua_settop(L,0);
+	lua_pushnumber(L,0);
+	for(i=0;i<map.room_count;i++)
+	{
+		if (l_roomname.compare(map.rooms[i].name)==0)
+		{
+			l_count++;
+			lua_pushnumber(L,i);
+		}
+	}
+	lua_pushnumber(L,l_count);
+	lua_replace(L,1);
+	return l_count+1;
+}
+static int l_getexits(lua_State *L)
+{
+	int l_roomid=luaL_checknumber(L,1);
+	int l_count=0;
+	struct path *tmppath;
+	if ((l_roomid<0)||(l_roomid>room_max))
+	{
+		lua_pushnumber(L,0);
+		return 1;
+	}
+	lua_settop(L,0);
+	lua_pushnumber(L,0);
+	tmppath=map.rooms[l_roomid].firstexit;
+	while (tmppath)
+	{
+		l_count++;
+		lua_pushstring(L,tmppath->content);
+		tmppath=tmppath->next;
+	}
+	lua_pushnumber(L,l_count);
+	lua_replace(L,1);
+	return l_count+1;
+}
 
 static int l_getroomname(lua_State *L)
 {
 	int l_roomid=luaL_checknumber(L,1);
+	if ((l_roomid<0)||(l_roomid>room_max))
+	{
+		lua_pushstring(L,"");
+		return 1;
+	}
 	lua_pushstring(L,map.rooms[l_roomid].name);
 	return 1;
 };
@@ -563,8 +678,16 @@ static int l_getpath(lua_State *L)
 {
 	int l_fr = (int) luaL_checknumber(L , 1);
 	int l_to = (int) luaL_checknumber(L , 2);
+	int l_fly=1;
+	int i=lua_gettop(L);
+	if ((i<2)||(i>3))
+	{
+		lua_pushstring(L,"");
+		return 1;
+	}
+	if (i=3) {l_fly=(int) luaL_checknumber(L , 3);};
 	string result;
-	result=map.getpath(l_fr,l_to);
+	result=map.getpath(l_fr,l_to,l_fly);
 	lua_pushstring(L,result.c_str());
 	return 1;
 };
@@ -573,8 +696,11 @@ static const luaL_reg l_mushmapper[] =
 {
   {"openmap", l_openfile},
   {"getroomname", l_getroomname},
+  {"getroomid", l_getroomid},
   {"getpath", l_getpath},
+  {"getexits", l_getexits},
   {"settags", l_settags},
+  {"setflylist", l_setflylist},
   {"debug", l_debug},
   {NULL, NULL}
 };
