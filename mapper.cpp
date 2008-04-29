@@ -188,7 +188,6 @@ string mapper::getpath(int fr,int to,int _fly)
 					link=walk->path->to;
 					exit=roadmaps[link].path;
 					while(exit){
-						cout << exit->from << exit->content<< endl;
 						tmpstring2=exit->content;
 						tmpstring2+=vchar[7];
 						tmpstring=tmpstring2+tmpstring;
@@ -235,6 +234,7 @@ string mapper::getpath(int fr,int to,int _fly)
 		newwalk_back=NULL;
 		newsteps_back=NULL;
 		walk_back = steps_back;
+
 		while (walk_back)
 		{
 			if ((walk_back->delay)&&((walk_back->next)||(steps_back!=walk_back)))
@@ -254,12 +254,12 @@ string mapper::getpath(int fr,int to,int _fly)
 				steps_back_count++;
 				continue;						
 			}
-
 			if (roadmaps_back[walk_back->path->from].path==NULL)
 			{
 				roadmaps_back[walk_back->path->from].path=walk_back->path;
 				if ((roadmaps[walk_back->path->from].path)||(walk_back->path->from==fr))
 				{
+
 					delsteps(steps_back);
 					delsteps(newsteps_back);
 					link=walk_back->path->from;
@@ -305,6 +305,7 @@ string mapper::getpath(int fr,int to,int _fly)
 				};
 			};
 			walk_back=walk_back->next;
+
 		};
 		delsteps(steps_back);
 		steps_back=newsteps_back;
@@ -429,6 +430,7 @@ struct path* mapper::makepath(string datatxt, int roomid)
 	tmppath->to=atoi(datatxt.c_str());
 	tmppath->delay=delay;
 	tmppath->next=NULL;
+	tmppath->backnext=NULL;
 	if ((tmppath->to<0)||(tmppath->to>room_max)){
 		delete tmppath;
 		return NULL;
@@ -624,6 +626,11 @@ static int l_getroomid(lua_State *L)
 	int l_count=0;
 	string l_roomname;
 	l_roomname = lua_tostring(L,1);
+	if (l_roomname.size()>roomname_length)
+	{
+		lua_pushnumber(L,0);
+		return 1;
+	}
 	lua_settop(L,0);
 	lua_pushnumber(L,0);
 	for(i=0;i<map.room_count;i++)
