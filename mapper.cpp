@@ -16,6 +16,10 @@ mapper对象的过程
 mapper::mapper()
 {
 strcpy(vchar,"|=,:><%;");//设置默认的控制字符
+firstbind=NULL;
+lastbind=NULL;
+firstfly=NULL;
+lastfly=NULL;
 }
 mapper::~mapper()
 {
@@ -184,10 +188,11 @@ string mapper::getpath(int fr,int to,int _fly)
 					link=walk->path->to;
 					exit=roadmaps[link].path;
 					while(exit){
+						cout << exit->from << exit->content<< endl;
 						tmpstring2=exit->content;
 						tmpstring2+=vchar[7];
 						tmpstring=tmpstring2+tmpstring;
-						if (exit->to==to){
+						if (exit->from==fr){
 							exit=NULL;
 						}else{
 							exit=roadmaps[exit->from].path;
