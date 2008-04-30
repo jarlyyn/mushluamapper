@@ -665,6 +665,14 @@ static int l_getexits(lua_State *L)
 		lua_pushnumber(L,tmppath->to);
 		tmppath=tmppath->next;
 	}
+	tmppath=map.firstfly;
+	while (tmppath)
+	{
+		l_count++;
+		lua_pushstring(L,tmppath->content);
+		lua_pushnumber(L,tmppath->to);
+		tmppath=tmppath->next;
+	}
 	lua_pushnumber(L,l_count);
 	lua_replace(L,1);
 	return (l_count*2+1);
