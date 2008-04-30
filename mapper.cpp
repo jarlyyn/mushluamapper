@@ -662,11 +662,12 @@ static int l_getexits(lua_State *L)
 	{
 		l_count++;
 		lua_pushstring(L,tmppath->content);
+		lua_pushnumber(L,tmppath->to);
 		tmppath=tmppath->next;
 	}
 	lua_pushnumber(L,l_count);
 	lua_replace(L,1);
-	return l_count+1;
+	return (l_count*2+1);
 }
 
 static int l_getroomname(lua_State *L)
