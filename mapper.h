@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 using namespace std;
-#define infile_buff 512 		//地图文件每行最大长度
+#define infile_buff 2048 		//地图文件每行最大长度
 #define roomname_length 20	 //房间名的最大长度
 #define pathtag_length 20	 //tag名的最大长度
 #define pathcontent_length 40 	//每条路径的行走指令的最大长度

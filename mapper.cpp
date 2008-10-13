@@ -320,7 +320,7 @@ string mapper::getpath(int fr,int to,int _fly)
 int mapper::open(string filename)
 {
 	string in_txt;
-	char txttemp[512];
+	char txttemp[infile_buff];
 	ifstream in_file(filename.c_str());
 	if (!in_file.is_open()) return false;
 	for(int i=0;i<room_max;i++){rooms_back[i].firstexit=rooms_back[i].lastexit=NULL;};
