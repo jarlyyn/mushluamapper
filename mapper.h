@@ -21,6 +21,7 @@ extern "C" _declspec(dllexport) int luaopen_mapper (lua_State *L);
 	struct path *bindto;
 	struct path *path;
 	struct bindinfo* next;
+	int isfirstexit;
 };
 
  struct path

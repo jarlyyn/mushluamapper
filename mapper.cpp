@@ -26,9 +26,13 @@ mapper::~mapper()
 	int i;
 	debind();
 	delpaths(firstfly);
+	firstfly=NULL;
+	lastfly=NULL;
 	for(i=0;i<room_max;i++)
 	{
 		delpaths(rooms[i].firstexit);
+		rooms[i].firstexit=NULL;
+		rooms[i].lastexit=NULL;
 	}
 	room_count=0;
 }
@@ -60,6 +64,8 @@ void mapper::setflylist(string flylist)
 	struct path* tmppath;
 	int i;
 	delpaths(firstfly);
+	firstfly=NULL;
+	lastfly=NULL;
 	i=flylist.find(vchar[2]);
 	while (i!=string::npos)
 	{
@@ -445,7 +451,13 @@ void mapper::debind()
 	tmpbind=firstbind;
 	while (tmpbind)
 	{
-		if(tmpbind->bindto){tmpbind->bindto->next=NULL;};
+		if(tmpbind->bindto){
+			if(tmpbind->isfirstexit>-1){
+				rooms[tmpbind->isfirstexit].lastexit=NULL;
+			}else{
+				tmpbind->bindto->next=NULL;
+			};
+		};
 		tmpbind=tmpbind->next;
 	};
 	tmpbind=firstbind;
@@ -458,6 +470,18 @@ void mapper::debind()
 	}
 	firstbind=lastbind=NULL;
 };
+struct path* fakepath(struct path* tmppath){
+	struct path* newpath;
+	newpath=(struct path*)malloc(pathsize);
+	strcpy(newpath->content,tmppath->content);
+	newpath->delay=tmppath->delay;
+	newpath->from=tmppath->from;
+	newpath->to=tmppath->to;
+	strcpy(newpath->tag,tmppath->tag);
+	newpath->next=NULL;
+	newpath->backnext=NULL;
+	return newpath;
+};
 
 void mapper::bind(struct pathtag *tag)
 {
@@ -468,8 +492,9 @@ void mapper::bind(struct pathtag *tag)
 	{
 		tmpbind=(struct bindinfo*)malloc(bindinfosize);
 		tmpbind->next=NULL;
-		tmpbind->path=tmppath;
-		tmpbind->bindto=rooms[tmppath->from].lastexit;
+		tmpbind->path=fakepath(tmppath);
+		tmpbind->bindto=rooms[tmpbind->path->from].lastexit;
+		tmpbind->isfirstexit=-1;
 		if(firstbind)
 		{
 			lastbind->next=tmpbind;
@@ -479,10 +504,11 @@ void mapper::bind(struct pathtag *tag)
 		}
 		if (tmpbind->bindto)
 		{
-			rooms[tmppath->from].lastexit->next=tmppath;
-			rooms[tmppath->from].lastexit=tmppath;
+			rooms[tmpbind->path->from].lastexit->next=tmpbind->path;
+			rooms[tmpbind->path->from].lastexit=tmpbind->path;
 		}else{
-			rooms[tmppath->from].firstexit=rooms[tmppath->from].lastexit=tmppath;
+			tmpbind->isfirstexit=tmpbind->path->from;
+			tmpbind->bindto=rooms[tmpbind->path->from].firstexit=rooms[tmpbind->path->from].lastexit=tmpbind->path;
 		};
 		tmppath=tmppath->next;			
 	};
