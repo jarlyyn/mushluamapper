@@ -453,8 +453,9 @@ void mapper::debind()
 	{
 		if(tmpbind->bindto){
 			if(tmpbind->isfirstexit>-1){
-				rooms[tmpbind->isfirstexit].lastexit=NULL;
+				rooms[tmpbind->isfirstexit].firstexit=rooms[tmpbind->isfirstexit].lastexit=NULL;
 			}else{
+				rooms[tmpbind->path->from].lastexit=tmpbind->bindto;
 				tmpbind->bindto->next=NULL;
 			};
 		};
@@ -549,7 +550,8 @@ void mapper::settags(string _tags)
 			lastfound=found+1;
 			found=tmpstring.find_first_of(tmpstring2,lastfound);
 		};
-		if (found==string::npos) {bind(tmptag);};
+		if (found==string::npos) {
+		bind(tmptag);};
 		tmptag=tmptag->next;
 	};
 };
