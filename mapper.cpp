@@ -8,20 +8,20 @@
 #include "mapper.h"
 #include  <vector>
 using namespace std;
-mapper map;
-vector <mapper> maps;
+vector <mapper*> maps;
 /*******************************************
 mapper对象的过程
 *******************************************/
 int getmapperid(string uid)
 {int i;
-	mapper* tmpmapper=new mapper();
+	mapper* tmpmapper;
 	for (i=0; i<maps.size(); i++){
-		if (maps.at(i).uid==uid){
+		if (maps.at(i)->uid==uid){
 			return i;
 		};
 	};
-	maps.push_back(*tmpmapper);
+	tmpmapper=new mapper();
+	maps.push_back(tmpmapper);
 	return i;
 };
 
@@ -646,7 +646,7 @@ static int l_openfile(lua_State *L)
 	string _filename;
 	int mapid=luaL_checknumber(L,1);
 	_filename = lua_tostring(L,2);
-	lua_pushnumber(L,maps.at(mapid).open(_filename));
+	lua_pushnumber(L,maps.at(mapid)->open(_filename));
 	return 1;
 };
 static int l_settags(lua_State *L)
@@ -654,7 +654,7 @@ static int l_settags(lua_State *L)
 	string l_tags;
 	int mapid=luaL_checknumber(L,1);
 	l_tags = lua_tostring(L,2);
-	maps.at(mapid).settags(l_tags);
+	maps.at(mapid)->settags(l_tags);
 	return 0;
 };
 static int l_setflylist(lua_State *L)
@@ -662,7 +662,7 @@ static int l_setflylist(lua_State *L)
 	string l_flylist;
 	int mapid=luaL_checknumber(L,1);
 	l_flylist = lua_tostring(L,2);
-	maps.at(mapid).setflylist(l_flylist);
+	maps.at(mapid)->setflylist(l_flylist);
 	return 0;
 }
 static int l_getroomid(lua_State *L)
@@ -679,9 +679,9 @@ static int l_getroomid(lua_State *L)
 	}
 	lua_settop(L,0);
 	lua_pushnumber(L,0);
-	for(i=0;i<maps.at(mapid).room_count;i++)
+	for(i=0;i<maps.at(mapid)->room_count;i++)
 	{
-		if (l_roomname.compare(maps.at(mapid).rooms[i].name)==0)
+		if (l_roomname.compare(maps.at(mapid)->rooms[i].name)==0)
 		{
 			l_count++;
 			lua_pushnumber(L,i);
@@ -690,6 +690,14 @@ static int l_getroomid(lua_State *L)
 	lua_pushnumber(L,l_count);
 	lua_replace(L,1);
 	return l_count+1;
+}
+static int l_getid(lua_State *L)
+{
+	string l_uid;
+	l_uid = lua_tostring(L,1);
+	lua_settop(L,0);
+	lua_pushnumber(L,getmapperid(l_uid));
+	return 1;
 }
 static int l_getexits(lua_State *L)
 {
@@ -704,7 +712,7 @@ static int l_getexits(lua_State *L)
 	}
 	lua_settop(L,0);
 	lua_pushnumber(L,0);
-	tmppath=maps.at(mapid).rooms[l_roomid].firstexit;
+	tmppath=maps.at(mapid)->rooms[l_roomid].firstexit;
 	while (tmppath)
 	{
 		l_count++;
@@ -712,7 +720,7 @@ static int l_getexits(lua_State *L)
 		lua_pushnumber(L,tmppath->to);
 		tmppath=tmppath->next;
 	}
-	tmppath=maps.at(mapid).firstfly;
+	tmppath=maps.at(mapid)->firstfly;
 	while (tmppath)
 	{
 		l_count++;
@@ -734,7 +742,7 @@ static int l_getroomname(lua_State *L)
 		lua_pushstring(L,"");
 		return 1;
 	}
-	lua_pushstring(L,maps.at(mapid).rooms[l_roomid].name);
+	lua_pushstring(L,maps.at(mapid)->rooms[l_roomid].name);
 	return 1;
 };
 
@@ -752,7 +760,7 @@ static int l_getpath(lua_State *L)
 	}
 	if (i=3) {l_fly=(int) luaL_checknumber(L , 4);};
 	string result;
-	result=maps.at(mapid).getpath(l_fr,l_to,l_fly);
+	result=maps.at(mapid)->getpath(l_fr,l_to,l_fly);
 	lua_pushstring(L,result.c_str());
 	return 1;
 };
@@ -766,6 +774,7 @@ static const luaL_reg l_mushmapper[] =
   {"getexits", l_getexits},
   {"settags", l_settags},
   {"setflylist", l_setflylist},
+  {"getid", l_getid},
   {NULL, NULL}
 };
 
