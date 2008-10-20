@@ -6,12 +6,25 @@
 #include <malloc.h>
 #include "lua.hpp"
 #include "mapper.h"
-
-
+#include  <vector>
+using namespace std;
 mapper map;
+vector <mapper> maps;
 /*******************************************
 mapper对象的过程
 *******************************************/
+int getmapperid(string uid)
+{int i;
+	mapper* tmpmapper=new mapper();
+	for (i=0; i<maps.size(); i++){
+		if (maps.at(i).uid==uid){
+			return i;
+		};
+	};
+	maps.push_back(*tmpmapper);
+	return i;
+};
+
 
 mapper::mapper()
 {
@@ -26,6 +39,7 @@ mapper::~mapper()
 	int i;
 	debind();
 	delpaths(firstfly);
+	uid="";
 	firstfly=NULL;
 	lastfly=NULL;
 	for(i=0;i<room_max;i++)
@@ -630,22 +644,25 @@ void tags::addpath(char sstag[pathtag_length],struct path *tmppath) //为指定的ta
 static int l_openfile(lua_State *L)
 {
 	string _filename;
-	_filename = lua_tostring(L,1);
-	lua_pushnumber(L,map.open(_filename));
+	int mapid=luaL_checknumber(L,1);
+	_filename = lua_tostring(L,2);
+	lua_pushnumber(L,maps.at(mapid).open(_filename));
 	return 1;
 };
 static int l_settags(lua_State *L)
 {
 	string l_tags;
-	l_tags = lua_tostring(L,1);
-	map.settags(l_tags);
+	int mapid=luaL_checknumber(L,1);
+	l_tags = lua_tostring(L,2);
+	maps.at(mapid).settags(l_tags);
 	return 0;
 };
 static int l_setflylist(lua_State *L)
 {
 	string l_flylist;
-	l_flylist = lua_tostring(L,1);
-	map.setflylist(l_flylist);
+	int mapid=luaL_checknumber(L,1);
+	l_flylist = lua_tostring(L,2);
+	maps.at(mapid).setflylist(l_flylist);
 	return 0;
 }
 static int l_getroomid(lua_State *L)
@@ -653,7 +670,8 @@ static int l_getroomid(lua_State *L)
 	int i;
 	int l_count=0;
 	string l_roomname;
-	l_roomname = lua_tostring(L,1);
+	int mapid=luaL_checknumber(L,1);
+	l_roomname = lua_tostring(L,2);
 	if (l_roomname.size()>roomname_length)
 	{
 		lua_pushnumber(L,0);
@@ -661,9 +679,9 @@ static int l_getroomid(lua_State *L)
 	}
 	lua_settop(L,0);
 	lua_pushnumber(L,0);
-	for(i=0;i<map.room_count;i++)
+	for(i=0;i<maps.at(mapid).room_count;i++)
 	{
-		if (l_roomname.compare(map.rooms[i].name)==0)
+		if (l_roomname.compare(maps.at(mapid).rooms[i].name)==0)
 		{
 			l_count++;
 			lua_pushnumber(L,i);
@@ -675,7 +693,8 @@ static int l_getroomid(lua_State *L)
 }
 static int l_getexits(lua_State *L)
 {
-	int l_roomid=luaL_checknumber(L,1);
+	int mapid=luaL_checknumber(L,1);
+	int l_roomid=luaL_checknumber(L,2);
 	int l_count=0;
 	struct path *tmppath;
 	if ((l_roomid<0)||(l_roomid>room_max))
@@ -685,7 +704,7 @@ static int l_getexits(lua_State *L)
 	}
 	lua_settop(L,0);
 	lua_pushnumber(L,0);
-	tmppath=map.rooms[l_roomid].firstexit;
+	tmppath=maps.at(mapid).rooms[l_roomid].firstexit;
 	while (tmppath)
 	{
 		l_count++;
@@ -693,7 +712,7 @@ static int l_getexits(lua_State *L)
 		lua_pushnumber(L,tmppath->to);
 		tmppath=tmppath->next;
 	}
-	tmppath=map.firstfly;
+	tmppath=maps.at(mapid).firstfly;
 	while (tmppath)
 	{
 		l_count++;
@@ -708,35 +727,32 @@ static int l_getexits(lua_State *L)
 
 static int l_getroomname(lua_State *L)
 {
-	int l_roomid=luaL_checknumber(L,1);
+	int mapid=luaL_checknumber(L,1);
+	int l_roomid=luaL_checknumber(L,2);
 	if ((l_roomid<0)||(l_roomid>room_max))
 	{
 		lua_pushstring(L,"");
 		return 1;
 	}
-	lua_pushstring(L,map.rooms[l_roomid].name);
+	lua_pushstring(L,maps.at(mapid).rooms[l_roomid].name);
 	return 1;
-};
-static int l_debug(lua_State *L)
-{
-	map._debug();
-	return 0;
 };
 
 static int l_getpath(lua_State *L)
 {
-	int l_fr = (int) luaL_checknumber(L , 1);
-	int l_to = (int) luaL_checknumber(L , 2);
+	int mapid=luaL_checknumber(L,1);
+	int l_fr = (int) luaL_checknumber(L , 2);
+	int l_to = (int) luaL_checknumber(L , 3);
 	int l_fly=1;
 	int i=lua_gettop(L);
-	if ((i<2)||(i>3))
+	if ((i<3)||(i>4))
 	{
 		lua_pushstring(L,"");
 		return 1;
 	}
-	if (i=3) {l_fly=(int) luaL_checknumber(L , 3);};
+	if (i=3) {l_fly=(int) luaL_checknumber(L , 4);};
 	string result;
-	result=map.getpath(l_fr,l_to,l_fly);
+	result=maps.at(mapid).getpath(l_fr,l_to,l_fly);
 	lua_pushstring(L,result.c_str());
 	return 1;
 };
@@ -750,7 +766,6 @@ static const luaL_reg l_mushmapper[] =
   {"getexits", l_getexits},
   {"settags", l_settags},
   {"setflylist", l_setflylist},
-  {"debug", l_debug},
   {NULL, NULL}
 };
 

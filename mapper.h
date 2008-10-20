@@ -111,6 +111,7 @@ class mapper
 	void exit_to_path(string data,int roomid);
 	void delsteps(struct step* steps);
 	struct path* makepath(string datatxt,int roomid);
+	string uid;
 };
 
 
