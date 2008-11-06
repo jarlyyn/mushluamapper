@@ -21,6 +21,7 @@ int getmapperid(string uid)
 		};
 	};
 	tmpmapper=new mapper();
+	tmpmapper->uid=uid;
 	maps.push_back(tmpmapper);
 	return i;
 };
