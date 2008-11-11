@@ -288,6 +288,11 @@ walking::~walking()
 struct pathresult walking::getpath(int to,int fr,int fly,vector <room> *rooms,vector <room> *rooms_back,list <path> *flylist)
 {	struct pathresult result,result2;
 	struct roadmap newroadmap;
+	if (to<0||to>rooms->size()||fr<0||fr>rooms->size())
+	{
+		result.path="";
+		result.delay=-1;
+		}
 	newroadmap.walked=0;
 	roadmaps.assign (rooms->size(),newroadmap);
 	walksteps.clear();
@@ -336,6 +341,7 @@ int walking::walk(vector <room> *rooms)
 	for (istep=walksteps.begin();istep!=walksteps.end();++istep)
 	{
 		istep->delay++;
+		if (istep->path.to>roadmaps.size()||istep->path.to<0){continue;};
 		if (roadmaps[istep->path.to].walked==1){continue;};
 		if (istep->delay>=istep->path.delay)
 		{
@@ -350,6 +356,7 @@ int walking::walk(vector <room> *rooms)
 }
 void walking::walkroom(vector <room> *rooms,int roomid,list <struct walkstep> *walks)
 	{
+		if (roomid>rooms->size()||roomid<0) {return;};
 		struct walkstep newstep;
 		list <path>::iterator iexit;
 		for (iexit=rooms->at(roomid).exits.begin();iexit!=rooms->at(roomid).exits.end();++iexit)
@@ -371,6 +378,7 @@ int walking::walk_back(vector <room> *rooms_back)
 	list <struct walkstep> newwalksteps;
 	for (istep=walksteps_back.begin();istep!=walksteps_back.end();++istep)
 	{
+		if (istep->path.from<0||istep->path.from>rooms_back->size()) {continue;}
 		if (roadmaps_back[istep->path.from].walked==1){continue;};
 		istep->delay++;
 		if (istep->delay>=istep->path.delay)
