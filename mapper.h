@@ -2,12 +2,14 @@
 #define luamapper_H
 #include <iostream>
 #include <string>
+#include  <vector>
+#include  <list>
 using namespace std;
 #define infile_buff 2048 		//地图文件每行最大长度
 #define roomname_length 20	 //房间名的最大长度
 #define pathtag_length 20	 //tag名的最大长度
 #define pathcontent_length 40 	//每条路径的行走指令的最大长度
-#define room_max 5000		 //默认房间数
+#define room_def 5000		 //默认房间数
 #define tagsize sizeof(struct pathtag)
 #define pathsize sizeof(struct path)
 #define stepsize sizeof(struct step)
@@ -15,15 +17,6 @@ using namespace std;
 #if defined(BUILDDLL)
 extern "C" _declspec(dllexport) int luaopen_mapper (lua_State *L);
 #endif
-
- struct bindinfo		//把符合tag的path绑定到rooms的信息，用来撤销tags用的
-{
-	struct path *bindto;
-	struct path *path;
-	struct bindinfo* next;
-	int isfirstexit;
-};
-
  struct path
 {
 	char content[pathcontent_length];	//出口的指令
@@ -31,53 +24,65 @@ extern "C" _declspec(dllexport) int luaopen_mapper (lua_State *L);
 	int from;				//起点房间
 	int to;					//终点房间
 	char tag[pathtag_length];
-	struct path *next;			//下一出口
-	struct path *backnext;
 };
-
-
- struct room
-{
+ class room
+{	public:
 	char name[roomname_length];
-	struct path *firstexit;
-	struct path *lastexit;
+	list <path> exits;
+	list <path> tagexits;
 };
- struct room_back
+struct pathresult
 {
-	struct path *firstexit;
-	struct path *lastexit;
+	string path;
+	int delay;
+};
+struct bindinfo
+{
+	int to;
+	int from;
 };
 
  struct pathtag
 {
 	char tag[pathtag_length];
-	struct path *firstpath;
-	struct path *lastpath;
-	struct pathtag *next;
+	list <path> paths;
 };
 
- struct roadmap
+struct roadmap
+{	int walked;
+	struct path path;
+};
+struct walkstep
 {
-	struct path *path;
+struct path path;
+int delay;
+};
+class walking
+{public:
+	walking();
+	struct pathresult getpath(int to,int fr,int fly,vector <room> *rooms,vector <room> *rooms_back,list <path> *flylist);
+	~walking();
+	list <struct walkstep> walksteps;
+	list <struct walkstep> walksteps_back;
+	private:
+	vector <roadmap> roadmaps;
+	vector <roadmap> roadmaps_back;
+	struct pathresult getresult(int keyroom,int ro,int fr);
+	struct pathresult getresult_back(int keyroom,int to,int fr);
+	int walk(vector <room> *rooms);
+	int walk_back(vector <room> *rooms_back);
+	void walkroom(vector <room> *rooms,int roomid,list <struct walkstep> *walks);
+};
 
-};
- struct step
-{
-	int id;
-	int delay;
-	struct path *path;
-	struct step *next;
-};
 
 class tags //储存tag信息的类
 {
 	public:
 		tags();
 		~tags();
-		void addpath(char sstag[pathtag_length],struct path *tmppath); /*为指定的tag添加路径*/
-		struct path* getpath(char stag[pathtag_length]);
-		struct pathtag *firsttag;
-		struct pathtag *lasttag;
+		void addpath(char sstag[pathtag_length],struct path tmppath); /*为指定的tag添加路径*/
+		struct path getpath(char stag[pathtag_length]);
+		list <pathtag> tag;
 };
 
 class mapper
@@ -86,35 +91,29 @@ class mapper
 	mapper();
 	~mapper();
 	int open(string filename);
-	void save();
-	string getpath(int fr,int to,int _fly);
-	void newmapper();
-	room rooms[room_max];
-	roadmap roadmaps[room_max];
-	roadmap roadmaps_back[room_max];
+//	void save();
+//	void newmapper();
+	struct pathresult getpath(int fr,int to,int fly);
+	int room_max;
+	vector <room> rooms;
+	vector <room> rooms_back;
 	void settags(string _tags);
 	void setflylist(string flylist);
-	struct path *firstfly;
-	struct path *lastfly;
-	void delpaths(struct path* paths);
-	void _debug();
+	list <path> flylist;
+	class walking walk;
 	class tags tags;
+
 	int room_count;//房间数
-	struct bindinfo *firstbind;
-	struct bindinfo *lastbind;
-	void debind();
-	void bind(struct pathtag *tag);
-	struct room_back rooms_back[room_max];
+	list <path> binds;//已经榜定的tags,撤销用
+	list <bindinfo> bindinfos;
 	char vchar[8];//文本处理中的控制字符
 	void readdata(char data[infile_buff]);
 	void readexits(string data);
 	void exit_to_path(string data,int roomid);
-	void delsteps(struct step* steps);
-	struct path* makepath(string datatxt,int roomid);
+	struct path makepath(string datatxt,int roomid);
+	void bind(struct pathtag tag);
+	void debind();
 	string uid;
 };
-
-
-
 
 #endif
