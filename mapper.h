@@ -113,6 +113,7 @@ class mapper
 	struct path makepath(string datatxt,int roomid);
 	void bind(struct pathtag tag);
 	void debind();
+	string lasttag;
 	string uid;
 };
 

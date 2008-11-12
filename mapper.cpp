@@ -56,6 +56,7 @@ mapper::~mapper()
 //参数filename为打开的文件名
 int mapper::open(string filename)
 {
+	lasttag="";
 	string in_txt;
 	debind();
 	char txttemp[infile_buff];
@@ -181,8 +182,8 @@ void mapper::debind()
 	list<bindinfo>::iterator ibind;
 	for(ibind=bindinfos.begin();ibind!=bindinfos.end();++ibind)
 	{
-		rooms[ibind->to].tagexits.clear();
-		rooms_back[ibind->from].tagexits.clear();
+		rooms[ibind->from].tagexits.clear();
+		rooms_back[ibind->to].tagexits.clear();
 	};
 	bindinfos.clear();
 }
@@ -193,6 +194,8 @@ void mapper::settags(string _tags)
 	string tmpstring,tmpstring2,tmpstring3;
 	int found;
 	int lastfound;
+	if (lasttag==_tags){return;};
+	lasttag=_tags;
 	debind();
 	_tags.insert(0,1,vchar[0]);
 	_tags+=vchar[0];
@@ -550,7 +553,18 @@ static int l_getpath(lua_State *L)
 	lua_pushnumber(L,result.delay);
 	return 2;
 };
-
+static int l_addpath(lua_State *L)
+{
+	int mapid=luaL_checknumber(L,1);
+	int roomid=luaL_checknumber(L,2);
+	if ((roomid<0)||(roomid>maps.at(mapid)->room_count))
+	{
+		return 0;
+	}
+	string l_path = lua_tostring(L,3);
+	maps.at(mapid)->exit_to_path(l_path,roomid);
+	return 0;
+}
 static const luaL_reg l_mushmapper[] =
 {
   {"openmap", l_openfile},
@@ -561,6 +575,7 @@ static const luaL_reg l_mushmapper[] =
   {"settags", l_settags},
   {"setflylist", l_setflylist},
   {"getid", l_getid},
+  {"addpath", l_addpath},
   {NULL, NULL}
 };
 
