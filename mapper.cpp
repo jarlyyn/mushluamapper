@@ -315,6 +315,7 @@ struct pathresult walking::getpath(int to,int fr,int fly,vector <room> *rooms,ve
 		{struct walkstep flystep;
 			flystep.delay=ifly->delay;
 			flystep.path=*ifly;
+			flystep.path.from=fr;
 			walksteps.push_back(flystep);
 		};
 	};
