@@ -10,6 +10,7 @@ using namespace std;
 #define pathtag_length 20	 //tag名的最大长度
 #define pathcontent_length 40 	//每条路径的行走指令的最大长度
 #define room_def 5000		 //默认房间数
+#define room_step 500		 //默认每次增加房间数
 #define tagsize sizeof(struct pathtag)
 #define pathsize sizeof(struct path)
 #define stepsize sizeof(struct step)
@@ -107,8 +108,9 @@ class mapper
 	list <path> binds;//已经榜定的tags,撤销用
 	list <bindinfo> bindinfos;
 	char vchar[8];//文本处理中的控制字符
-	void readdata(char data[infile_buff]);
-	void readexits(string data);
+	int newarea(int count);
+	void readdata(char data[infile_buff],int roomid);
+	void readexits(string data,int roomid);
 	void exit_to_path(string data,int roomid);
 	struct path makepath(string datatxt,int roomid);
 	void bind(struct pathtag tag);

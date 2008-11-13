@@ -31,52 +31,54 @@ int getmapperid(string uid)
 mapper::mapper()
 {
 strcpy(vchar,"|=,:><%;");//设置默认的控制字符
-rooms.resize(room_def);
-rooms_back.resize(room_def);
-room_max=room_def;
+	rooms.resize(room_def);
+	rooms_back.resize(room_def);
+	room_max=room_def;
+	room_count=-1;
 }
 mapper::~mapper()
 {
-//	int i;
-//	debind();
-//	delpaths(firstfly);
 	uid="";
-//	firstfly=NULL;
-//	lastfly=NULL;
-//	for(i=0;i<room_max;i++)
-//	{
-//		delpaths(rooms[i].firstexit);
-//		rooms[i].firstexit=NULL;
-//		rooms[i].lastexit=NULL;
-//	}
-//	room_count=0;
 }
-
 //打开地图文件
 //参数filename为打开的文件名
 int mapper::open(string filename)
 {
 	lasttag="";
 	string in_txt;
-	debind();
+//	debind();
 	char txttemp[infile_buff];
 	ifstream in_file(filename.c_str());
 	if (!in_file.is_open()) return false;
-//这里应该是初始化信息	for(int i=0;i<room_max;i++){rooms_back[i].firstexit=rooms_back[i].lastexit=NULL;};
-	room_count=0;
+	rooms.resize(room_def);
+	rooms_back.resize(room_def);
+	room_max=room_def;
+	room_count=-1;
 	do
   	{
 		in_file.getline(txttemp,infile_buff);
-        	readdata(txttemp);
+        	readdata(txttemp,newarea(1));
   	}while   (!in_file.eof());
 	in_file.close();
 	return true;
 };
 //处理读入的数据
 //参数data为读入的数据
-void mapper::readdata(char data[infile_buff])
+int mapper::newarea(int count)
 {
-	room_count ++;
+	int area=room_count+1;
+	room_count=room_count+count;
+	if (room_count>room_max)
+	{
+		room_max=room_max+room_step;
+		rooms.resize(room_max);
+		rooms_back.resize(room_max);
+	}
+	return area;
+}
+void mapper::readdata(char data[infile_buff],int roomid)
+{
+//	room_count ++;
 	string datatxt=data;
 	string dataroomname;
 	int i;
@@ -91,21 +93,21 @@ void mapper::readdata(char data[infile_buff])
 	return;
 	};//判断房间名结束
 	dataroomname.assign(dataroomname, i+1, dataroomname.size());
-	strcpy(rooms[room_count-1].name,dataroomname.c_str());
-	rooms.at(room_count-1).exits.clear();
-	readexits(datatxt);
+	strcpy(rooms[roomid].name,dataroomname.c_str());
+	rooms.at(roomid).exits.clear();
+	readexits(datatxt,roomid);
 };
 
 //取得默认由,分隔的出口信息
-void mapper::readexits(string datatxt)
+void mapper::readexits(string datatxt,int roomid)
 {
 	string datatxt2;
 	int i;
 	i = datatxt.find(vchar[2]);
 	if (i!=string::npos){
-	exit_to_path(datatxt.substr(0,i),room_count-1);
+	exit_to_path(datatxt.substr(0,i),roomid);
 	datatxt2.assign(datatxt,i+1,datatxt.size());
-	readexits(datatxt2);
+	readexits(datatxt2,roomid);
 	};
 	return;
 };
@@ -484,6 +486,26 @@ static int l_getid(lua_State *L)
 	lua_pushnumber(L,getmapperid(l_uid));
 	return 1;
 }
+static int l_newarea(lua_State *L)
+{
+	int mapid=luaL_checknumber(L,1);
+	int l_count=luaL_checknumber(L,2);
+	lua_settop(L,0);
+	lua_pushnumber(L,maps.at(mapid)->newarea(l_count));
+	return 1;
+}
+static int l_readroom(lua_State *L)
+{
+	int mapid=luaL_checknumber(L,1);
+	int l_roomid=luaL_checknumber(L,2);
+	if (l_roomid<0||l_roomid>maps.at(mapid)->room_count) {return 0;}
+	string l_data = lua_tostring(L,3);
+	lua_settop(L,0);
+	char data[infile_buff];
+	strcpy(data,l_data.c_str());
+	maps.at(mapid)->readdata(data,l_roomid);
+	return 0;
+}
 static int l_getexits(lua_State *L)
 {
 	int mapid=luaL_checknumber(L,1);
@@ -576,6 +598,8 @@ static const luaL_reg l_mushmapper[] =
   {"setflylist", l_setflylist},
   {"getid", l_getid},
   {"addpath", l_addpath},
+  {"newarea", l_newarea},
+  {"readroom", l_readroom},
   {NULL, NULL}
 };
 
