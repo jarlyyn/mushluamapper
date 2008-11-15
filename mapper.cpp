@@ -171,12 +171,17 @@ void mapper::bind(struct pathtag tag)
 {
 	struct bindinfo tmpbindinfo;
 	list<path>::iterator ipath;
+	struct path tmppath;
 	for(ipath=tag.paths.begin();ipath!=tag.paths.end();++ipath)
 	{
+	tmppath.delay=ipath->delay;
+	tmppath.to=ipath->to;
+	strcpy(tmppath.content,ipath->content);
+	strcpy(tmppath.tag,ipath->tag);
 	tmpbindinfo.to=ipath->to;
-	rooms[ipath->from].tagexits.push_back(*ipath);
+	rooms[ipath->from].tagexits.push_back(tmppath);
 	tmpbindinfo.from=ipath->from;
-	rooms_back[ipath->to].tagexits.push_back(*ipath);
+	rooms_back[ipath->to].tagexits.push_back(tmppath);
 	bindinfos.push_back(tmpbindinfo);}
 }
 void mapper::debind()
