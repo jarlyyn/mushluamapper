@@ -101,7 +101,7 @@ class mapper
 	void settags(string _tags);
 	void setflylist(string flylist);
 	list <path> flylist;
-	class walking walk;
+//	class walking walk;
 	class tags tags;
 
 	int room_count;//房间数

@@ -46,7 +46,7 @@ int mapper::open(string filename)
 {
 	lasttag="";
 	string in_txt;
-//	debind();
+	debind();
 	char txttemp[infile_buff];
 	ifstream in_file(filename.c_str());
 	if (!in_file.is_open()) return false;
@@ -158,14 +158,17 @@ struct path mapper::makepath(string datatxt, int roomid)
 	tmppath.to=atoi(datatxt.c_str());
 	tmppath.delay=delay;
 // roommax¿¼ÂÇÐÞ¸ÄÏÂ
-//	if ((tmppath.to<0)||(tmppath.to>room_max)){
-//		return tmppath;
-//	};
+	if ((tmppath.to<0)||(tmppath.to>room_max)){
+	tmppath.to=-1;
+		return tmppath;
+	};
 	return tmppath;
 };
 
 struct pathresult mapper::getpath(int fr,int to,int fly)
-{return walk.getpath(to,fr,fly,&rooms,&rooms_back,&flylist);};
+{
+	class walking walk;
+	return walk.getpath(to,fr,fly,&rooms,&rooms_back,&flylist);};
 
 void mapper::bind(struct pathtag tag)
 {
@@ -174,14 +177,11 @@ void mapper::bind(struct pathtag tag)
 	struct path tmppath;
 	for(ipath=tag.paths.begin();ipath!=tag.paths.end();++ipath)
 	{
-	tmppath.delay=ipath->delay;
-	tmppath.to=ipath->to;
-	strcpy(tmppath.content,ipath->content);
-	strcpy(tmppath.tag,ipath->tag);
-	tmpbindinfo.to=ipath->to;
+	tmppath=*ipath;
 	rooms[ipath->from].tagexits.push_back(tmppath);
 	tmpbindinfo.from=ipath->from;
 	rooms_back[ipath->to].tagexits.push_back(tmppath);
+	tmpbindinfo.to=ipath->to;
 	bindinfos.push_back(tmpbindinfo);}
 }
 void mapper::debind()
@@ -298,7 +298,7 @@ walking::~walking()
 struct pathresult walking::getpath(int to,int fr,int fly,vector <room> *rooms,vector <room> *rooms_back,list <path> *flylist)
 {	struct pathresult result,result2;
 	struct roadmap newroadmap;
-	if (to<0||to>rooms->size()||fr<0||fr>rooms->size())
+	if (to<0||to>=rooms->size()||fr<0||fr>=rooms->size())
 	{
 		result.path="";
 		result.delay=-1;
@@ -352,7 +352,7 @@ int walking::walk(vector <room> *rooms)
 	for (istep=walksteps.begin();istep!=walksteps.end();++istep)
 	{
 		istep->delay++;
-		if (istep->path.to>roadmaps.size()||istep->path.to<0){continue;};
+		if (istep->path.to>=roadmaps.size()||istep->path.to<0){continue;};
 		if (roadmaps[istep->path.to].walked==1){continue;};
 		if (istep->delay>=istep->path.delay)
 		{
@@ -367,7 +367,7 @@ int walking::walk(vector <room> *rooms)
 }
 void walking::walkroom(vector <room> *rooms,int roomid,list <struct walkstep> *walks)
 	{
-		if (roomid>rooms->size()||roomid<0) {return;};
+		if (roomid>=rooms->size()||roomid<0) {return;};
 		struct walkstep newstep;
 		list <path>::iterator iexit;
 		for (iexit=rooms->at(roomid).exits.begin();iexit!=rooms->at(roomid).exits.end();++iexit)
@@ -389,7 +389,7 @@ int walking::walk_back(vector <room> *rooms_back)
 	list <struct walkstep> newwalksteps;
 	for (istep=walksteps_back.begin();istep!=walksteps_back.end();++istep)
 	{
-		if (istep->path.from<0||istep->path.from>rooms_back->size()) {continue;}
+		if (istep->path.from<0||istep->path.from>=rooms_back->size()) {continue;}
 		if (roadmaps_back[istep->path.from].walked==1){continue;};
 		istep->delay++;
 		if (istep->delay>=istep->path.delay)
@@ -413,7 +413,7 @@ struct pathresult walking::getresult(int keyroom,int to,int fr)
 	result.path=roadmaps[keyroom].path.content+result.path;
 	result.delay=roadmaps[keyroom].path.delay+result.delay;
 	keyroom=roadmaps[keyroom].path.from;
-	}while(keyroom!=to && keyroom!=fr);
+	}while(keyroom!=to && keyroom!=fr && keyroom>-1 && keyroom <roadmaps.size());
 	return result;
 }
 
@@ -425,7 +425,7 @@ struct pathresult walking::getresult_back(int keyroom,int to,int fr)
 		result.path=result.path+";";
 		result.delay=roadmaps_back[keyroom].path.delay+result.delay;
 		keyroom=roadmaps_back[keyroom].path.to;
-	}while(keyroom!=to && keyroom!=fr);
+	}while(keyroom!=to && keyroom!=fr && keyroom>-1 && keyroom <roadmaps.size());
 	return result;
 }
 
@@ -438,6 +438,10 @@ static int l_openfile(lua_State *L)
 {
 	string _filename;
 	int mapid=luaL_checknumber(L,1);
+	if (mapid<0||mapid>=maps.size()){
+		lua_pushnumber(L,-1);
+		return 1;
+		}
 	_filename = lua_tostring(L,2);
 	lua_pushnumber(L,maps.at(mapid)->open(_filename));
 	return 1;
@@ -446,6 +450,9 @@ static int l_settags(lua_State *L)
 {
 	string l_tags;
 	int mapid=luaL_checknumber(L,1);
+	if (mapid<0||mapid>=maps.size()){
+		return 0;
+	}
 	l_tags = lua_tostring(L,2);
 	maps.at(mapid)->settags(l_tags);
 	return 0;
@@ -454,6 +461,9 @@ static int l_setflylist(lua_State *L)
 {
 	string l_flylist;
 	int mapid=luaL_checknumber(L,1);
+	if (mapid<0||mapid>=maps.size()){
+		return 0;
+	}
 	l_flylist = lua_tostring(L,2);
 	maps.at(mapid)->setflylist(l_flylist);
 	return 0;
@@ -465,7 +475,8 @@ static int l_getroomid(lua_State *L)
 	string l_roomname;
 	int mapid=luaL_checknumber(L,1);
 	l_roomname = lua_tostring(L,2);
-	if (l_roomname.size()>roomname_length)
+
+	if (l_roomname.size()>roomname_length||mapid<0||mapid>=maps.size())
 	{
 		lua_pushnumber(L,0);
 		return 1;
@@ -495,6 +506,10 @@ static int l_getid(lua_State *L)
 static int l_newarea(lua_State *L)
 {
 	int mapid=luaL_checknumber(L,1);
+	if (mapid<0||mapid>=maps.size()){
+		lua_pushnumber(L,-1);
+		return 1;
+		}
 	int l_count=luaL_checknumber(L,2);
 	lua_settop(L,0);
 	lua_pushnumber(L,maps.at(mapid)->newarea(l_count));
@@ -504,7 +519,10 @@ static int l_readroom(lua_State *L)
 {
 	int mapid=luaL_checknumber(L,1);
 	int l_roomid=luaL_checknumber(L,2);
-	if (l_roomid<0||l_roomid>maps.at(mapid)->room_count) {return 0;}
+	if (mapid<0||mapid>=maps.size()){
+		return 0;
+		}
+	if (l_roomid<0||l_roomid>=maps.at(mapid)->room_count) {return 0;}
 	string l_data = lua_tostring(L,3);
 	lua_settop(L,0);
 	char data[infile_buff];
@@ -518,7 +536,11 @@ static int l_getexits(lua_State *L)
 	int l_roomid=luaL_checknumber(L,2);
 	int l_count=0;
 	list <struct path>::iterator tmppath;
-	if ((l_roomid<0)||(l_roomid>maps.at(mapid)->room_count))
+	if (mapid<0||mapid>=maps.size()){
+		lua_pushnumber(L,0);
+		return 1;
+	}
+	if ((l_roomid<0)||(l_roomid>=maps.at(mapid)->room_count))
 	{
 		lua_pushnumber(L,0);
 		return 1;
@@ -552,7 +574,11 @@ static int l_getroomname(lua_State *L)
 {
 	int mapid=luaL_checknumber(L,1);
 	int l_roomid=luaL_checknumber(L,2);
-	if ((l_roomid<0)||(l_roomid>maps.at(mapid)->room_count))
+	if (mapid<0||mapid>=maps.size()){
+		lua_pushstring(L,"");
+			return 1;
+		}
+	if ((l_roomid<0)||(l_roomid>=maps.at(mapid)->room_count))
 	{
 		lua_pushstring(L,"");
 		return 1;
@@ -564,17 +590,21 @@ static int l_getroomname(lua_State *L)
 static int l_getpath(lua_State *L)
 {
 	int mapid=luaL_checknumber(L,1);
-	int l_fr = (int) luaL_checknumber(L , 2);
-	int l_to = (int) luaL_checknumber(L , 3);
+	int l_fr = luaL_checknumber(L , 2);
+	int l_to = luaL_checknumber(L , 3);
 	int l_fly=1;
 	int i=lua_gettop(L);
-	if ((i<3)||(i>4))
+	if (mapid<0||mapid>=maps.size()){
+	lua_pushstring(L,"");
+		lua_pushnumber(L,-1);
+		return 2;}
+	if ((i<3)||(i>4)||(l_to<0)||(l_to>=maps.at(mapid)->room_count)||(l_fr<0)||(l_fr>=maps.at(mapid)->room_count))
 	{
 		lua_pushstring(L,"");
 		lua_pushnumber(L,-1);
 		return 2;
 	}
-	if (i=3) {l_fly=(int) luaL_checknumber(L , 4);};
+	if (i=4) {l_fly=luaL_checknumber(L , 4);};
 	pathresult result;
 	result=maps.at(mapid)->getpath(l_fr,l_to,l_fly);
 	lua_pushstring(L,result.path.c_str());
@@ -585,6 +615,7 @@ static int l_addpath(lua_State *L)
 {
 	int mapid=luaL_checknumber(L,1);
 	int roomid=luaL_checknumber(L,2);
+	if (mapid<0||mapid>=maps.size()){return 0;}
 	if ((roomid<0)||(roomid>maps.at(mapid)->room_count))
 	{
 		return 0;
