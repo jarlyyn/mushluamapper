@@ -27,7 +27,27 @@ int getmapperid(string uid)
 	return i;
 };
 
+room::room()
+{
+	exits.clear();
+	tagexits.clear();
+	strcpy(name,"");
+}
+room::~room()
+{
+	exits.clear();
+	tagexits.clear();
+};
 
+pathtag::pathtag()
+{
+	paths.clear();
+	strcpy(tag,"");
+}
+pathtag::~pathtag()
+{
+	paths.clear();
+}
 mapper::mapper()
 {
 strcpy(vchar,"|=,:><%;");//设置默认的控制字符
@@ -50,6 +70,8 @@ int mapper::open(string filename)
 	char txttemp[infile_buff];
 	ifstream in_file(filename.c_str());
 	if (!in_file.is_open()) return false;
+	rooms.clear();
+	rooms_back.clear();
 	rooms.resize(room_def);
 	rooms_back.resize(room_def);
 	room_max=room_def;
@@ -79,6 +101,7 @@ int mapper::newarea(int count)
 void mapper::readdata(char data[infile_buff],int roomid)
 {
 //	room_count ++;
+	if (roomid<0||roomid>=room_count) {return;}
 	string datatxt=data;
 	string dataroomname;
 	int i;
@@ -113,6 +136,7 @@ void mapper::readexits(string datatxt,int roomid)
 };
 void mapper::exit_to_path(string data,int roomid)
 {
+	if (roomid<0||roomid>=room_count) {return;}
 	int i;
 	string tmpstring;
 	char tmptxt[pathtag_length];
@@ -177,6 +201,7 @@ void mapper::bind(struct pathtag tag)
 	struct path tmppath;
 	for(ipath=tag.paths.begin();ipath!=tag.paths.end();++ipath)
 	{
+	if (ipath->to<0||ipath->to>=room_count||ipath->from<0||ipath->from>=room_count) {continue;}
 	tmppath=*ipath;
 	rooms[ipath->from].tagexits.push_back(tmppath);
 	tmpbindinfo.from=ipath->from;
@@ -189,6 +214,7 @@ void mapper::debind()
 	list<bindinfo>::iterator ibind;
 	for(ibind=bindinfos.begin();ibind!=bindinfos.end();++ibind)
 	{
+	if (ibind->to<0||ibind->to>=room_count||ibind->from<0||ibind->from>=room_count) {continue;}
 		rooms[ibind->from].tagexits.clear();
 		rooms_back[ibind->to].tagexits.clear();
 	};
@@ -304,11 +330,13 @@ struct pathresult walking::getpath(int to,int fr,int fly,vector <room> *rooms,ve
 		result.delay=-1;
 		}
 	newroadmap.walked=0;
+	roadmaps.clear();
 	roadmaps.assign (rooms->size(),newroadmap);
 	walksteps.clear();
 	walksteps_back.clear();
 	roadmaps[fr].walked=1;
 	walkroom(rooms,fr,&walksteps);
+	roadmaps_back.clear();
 	roadmaps_back.assign (rooms->size(),newroadmap);
 	walksteps_back.clear();
 	roadmaps_back[to].walked=1;

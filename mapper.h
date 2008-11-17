@@ -28,6 +28,8 @@ extern "C" _declspec(dllexport) int luaopen_mapper (lua_State *L);
 };
  class room
 {	public:
+	room();
+	~room();
 	char name[roomname_length];
 	list <path> exits;
 	list <path> tagexits;
@@ -43,8 +45,11 @@ struct bindinfo
 	int from;
 };
 
- struct pathtag
+ class pathtag
 {
+	public:
+	pathtag();
+	~pathtag();
 	char tag[pathtag_length];
 	list <path> paths;
 };
