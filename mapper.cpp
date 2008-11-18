@@ -101,7 +101,7 @@ int mapper::newarea(int count)
 void mapper::readdata(char data[infile_buff],int roomid)
 {
 //	room_count ++;
-	if (roomid<0||roomid>=room_count) {return;}
+	if (roomid<0||roomid>room_count) {return;}
 	string datatxt=data;
 	string dataroomname;
 	int i;
@@ -136,7 +136,7 @@ void mapper::readexits(string datatxt,int roomid)
 };
 void mapper::exit_to_path(string data,int roomid)
 {
-	if (roomid<0||roomid>=room_count) {return;}
+	if (roomid<0||roomid>room_count) {return;}
 	int i;
 	string tmpstring;
 	char tmptxt[pathtag_length];
@@ -183,7 +183,7 @@ struct path mapper::makepath(string datatxt, int roomid)
 	tmppath.delay=delay;
 // roommax¿¼ÂÇÐÞ¸ÄÏÂ
 	if ((tmppath.to<0)||(tmppath.to>room_max)){
-	tmppath.to=-1;
+		tmppath.to=-1;
 		return tmppath;
 	};
 	return tmppath;
@@ -201,7 +201,7 @@ void mapper::bind(struct pathtag tag)
 	struct path tmppath;
 	for(ipath=tag.paths.begin();ipath!=tag.paths.end();++ipath)
 	{
-	if (ipath->to<0||ipath->to>=room_count||ipath->from<0||ipath->from>=room_count) {continue;}
+	if (ipath->to<0||ipath->to>room_count||ipath->from<0||ipath->from>room_count) {continue;}
 	tmppath=*ipath;
 	rooms[ipath->from].tagexits.push_back(tmppath);
 	tmpbindinfo.from=ipath->from;
@@ -214,7 +214,7 @@ void mapper::debind()
 	list<bindinfo>::iterator ibind;
 	for(ibind=bindinfos.begin();ibind!=bindinfos.end();++ibind)
 	{
-	if (ibind->to<0||ibind->to>=room_count||ibind->from<0||ibind->from>=room_count) {continue;}
+	if (ibind->to<0||ibind->to>room_count||ibind->from<0||ibind->from>room_count) {continue;}
 		rooms[ibind->from].tagexits.clear();
 		rooms_back[ibind->to].tagexits.clear();
 	};
