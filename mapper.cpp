@@ -31,7 +31,7 @@ room::room()
 {
 	exits.clear();
 	tagexits.clear();
-	strcpy(name,"");
+	name="";
 }
 room::~room()
 {
@@ -42,7 +42,7 @@ room::~room()
 pathtag::pathtag()
 {
 	paths.clear();
-	strcpy(tag,"");
+	tag="";
 }
 pathtag::~pathtag()
 {
@@ -67,7 +67,7 @@ int mapper::open(string filename)
 	lasttag="";
 	string in_txt;
 	debind();
-	char txttemp[infile_buff];
+	string txttemp;
 	ifstream in_file(filename.c_str());
 	if (!in_file.is_open()) return false;
 	rooms.clear();
@@ -78,7 +78,7 @@ int mapper::open(string filename)
 	room_count=-1;
 	do
   	{
-		in_file.getline(txttemp,infile_buff);
+		getline(in_file,txttemp);
         	readdata(txttemp,newarea(1));
   	}while   (!in_file.eof());
 	in_file.close();
@@ -98,7 +98,7 @@ int mapper::newarea(int count)
 	}
 	return area;
 }
-void mapper::readdata(char data[infile_buff],int roomid)
+void mapper::readdata(string data,int roomid)
 {
 //	room_count ++;
 	if (roomid<0||roomid>room_count) {return;}
@@ -107,7 +107,7 @@ void mapper::readdata(char data[infile_buff],int roomid)
 	int i;
 	i = datatxt.find(vchar[0]);//判断是否有房间名，默认用|分割的
 	if (i==string::npos){
-	return;
+		return;
 	}
 	dataroomname=datatxt.substr(0,i);
 	datatxt.assign(datatxt,i+1,datatxt.size());
@@ -116,7 +116,7 @@ void mapper::readdata(char data[infile_buff],int roomid)
 	return;
 	};//判断房间名结束
 	dataroomname.assign(dataroomname, i+1, dataroomname.size());
-	strcpy(rooms[roomid].name,dataroomname.c_str());
+	rooms[roomid].name=dataroomname;
 	rooms.at(roomid).exits.clear();
 	readexits(datatxt,roomid);
 };
@@ -139,14 +139,14 @@ void mapper::exit_to_path(string data,int roomid)
 	if (roomid<0||roomid>room_count) {return;}
 	int i;
 	string tmpstring;
-	char tmptxt[pathtag_length];
+	string tmptxt;
 	struct path tmppath;
 	tmpstring=vchar[4];
 	tmpstring+=vchar[5];
 	i=data.find_last_of(tmpstring);
 	if (i!=string::npos)
 	{
-		strcpy(tmptxt,data.substr(0,i+1).c_str());
+		tmptxt=data.substr(0,i+1);
 		data.assign(data,i+1,data.size());
 		tmppath=makepath(data,roomid);
 		if (tmppath.to>-1) {
@@ -164,7 +164,7 @@ void mapper::exit_to_path(string data,int roomid)
 struct path mapper::makepath(string datatxt, int roomid)
 {
 	int i;
-	int delay=0;
+	int delay=1;
 	struct path tmppath;
 	tmppath.to=-1;
 	i=datatxt.rfind(vchar[6]);
@@ -176,10 +176,11 @@ struct path mapper::makepath(string datatxt, int roomid)
 	if (i==string::npos){
 		return tmppath;
 	};
-	strcpy(tmppath.content,datatxt.substr(0,i).c_str());
+	tmppath.content=datatxt.substr(0,i);
 	tmppath.from=roomid;
 	datatxt.assign(datatxt,i+1,datatxt.size());
 	tmppath.to=atoi(datatxt.c_str());
+	if (delay<1) {delay=1;}
 	tmppath.delay=delay;
 // roommax考虑修改下
 	if ((tmppath.to<0)||(tmppath.to>room_max)){
@@ -234,6 +235,7 @@ void mapper::settags(string _tags)
 	_tags+=vchar[0];
 	tmpstring2=vchar[4];
 	tmpstring2+=vchar[5];
+	if (_tags=="") {return;}
 	for(tmptag=tags.tag.begin();tmptag!=tags.tag.end();++tmptag)
 	{
 		tmpstring=tmptag->tag;
@@ -292,7 +294,7 @@ tags::~tags()
 	tag.clear();
 };
 
-void tags::addpath(char sstag[pathtag_length],struct path tmppath) //为指定的tag添加路径
+void tags::addpath(string sstag,struct path tmppath) //为指定的tag添加路径
 {
 	list<pathtag>::iterator itag;;
 	string tmpstring=sstag;
@@ -306,7 +308,7 @@ void tags::addpath(char sstag[pathtag_length],struct path tmppath) //为指定的tag
 	};
 	//判断为新tag,把这个tag加入tag表
 	struct pathtag tmptag;
-	strcpy(tmptag.tag,sstag);
+	tmptag.tag=sstag;
 	tmptag.paths.push_back(tmppath);
 	tag.push_back(tmptag);
 
@@ -319,6 +321,10 @@ walking::walking()
 };
 walking::~walking()
 {
+	walksteps.clear();
+	walksteps_back.clear();
+	roadmaps.clear();
+	roadmaps_back.clear();
 };
 
 struct pathresult walking::getpath(int to,int fr,int fly,vector <room> *rooms,vector <room> *rooms_back,list <path> *flylist)
@@ -341,11 +347,13 @@ struct pathresult walking::getpath(int to,int fr,int fly,vector <room> *rooms,ve
 	walksteps_back.clear();
 	roadmaps_back[to].walked=1;
 	walkroom(rooms_back,to,&walksteps_back);
+	struct walkstep flystep;
 	if (fly==1)
 	{
 		list <path>::iterator ifly;
 		for(ifly=flylist->begin();ifly!=flylist->end();++ifly)
-		{struct walkstep flystep;
+		{
+			if (ifly->to<0||ifly->to>rooms->size()) {continue;}
 			flystep.delay=ifly->delay;
 			flystep.path=*ifly;
 			flystep.path.from=fr;
@@ -504,14 +512,14 @@ static int l_getroomid(lua_State *L)
 	int mapid=luaL_checknumber(L,1);
 	l_roomname = lua_tostring(L,2);
 
-	if (l_roomname.size()>roomname_length||mapid<0||mapid>=maps.size())
+	if (mapid<0||mapid>=maps.size())
 	{
 		lua_pushnumber(L,0);
 		return 1;
 	}
 	lua_settop(L,0);
 	lua_pushnumber(L,0);
-	for(i=0;i<maps.at(mapid)->room_count;i++)
+	for(i=0;i<=maps.at(mapid)->room_count;i++)
 	{
 		if (l_roomname.compare(maps.at(mapid)->rooms[i].name)==0)
 		{
@@ -550,12 +558,10 @@ static int l_readroom(lua_State *L)
 	if (mapid<0||mapid>=maps.size()){
 		return 0;
 		}
-	if (l_roomid<0||l_roomid>=maps.at(mapid)->room_count) {return 0;}
+	if (l_roomid<0||l_roomid>maps.at(mapid)->room_count) {return 0;}
 	string l_data = lua_tostring(L,3);
 	lua_settop(L,0);
-	char data[infile_buff];
-	strcpy(data,l_data.c_str());
-	maps.at(mapid)->readdata(data,l_roomid);
+	maps.at(mapid)->readdata(l_data,l_roomid);
 	return 0;
 }
 static int l_getexits(lua_State *L)
@@ -568,7 +574,7 @@ static int l_getexits(lua_State *L)
 		lua_pushnumber(L,0);
 		return 1;
 	}
-	if ((l_roomid<0)||(l_roomid>=maps.at(mapid)->room_count))
+	if ((l_roomid<0)||(l_roomid>maps.at(mapid)->room_count))
 	{
 		lua_pushnumber(L,0);
 		return 1;
@@ -578,19 +584,19 @@ static int l_getexits(lua_State *L)
 	for (tmppath=maps.at(mapid)->rooms[l_roomid].exits.begin();tmppath!=maps.at(mapid)->rooms[l_roomid].exits.end();++tmppath)
 	{
 		l_count++;
-		lua_pushstring(L,tmppath->content);
+		lua_pushstring(L,tmppath->content.c_str());
 		lua_pushnumber(L,tmppath->to);
 	}
 	for (tmppath=maps.at(mapid)->rooms[l_roomid].tagexits.begin();tmppath!=maps.at(mapid)->rooms[l_roomid].tagexits.end();++tmppath)
 	{
 		l_count++;
-		lua_pushstring(L,tmppath->content);
+		lua_pushstring(L,tmppath->content.c_str());
 		lua_pushnumber(L,tmppath->to);
 	}
 		for (tmppath=maps.at(mapid)->flylist.begin();tmppath!=maps.at(mapid)->flylist.end();++tmppath)
 	{
 		l_count++;
-		lua_pushstring(L,tmppath->content);
+		lua_pushstring(L,tmppath->content.c_str());
 		lua_pushnumber(L,tmppath->to);
 	}
 	lua_pushnumber(L,l_count);
@@ -606,12 +612,12 @@ static int l_getroomname(lua_State *L)
 		lua_pushstring(L,"");
 			return 1;
 		}
-	if ((l_roomid<0)||(l_roomid>=maps.at(mapid)->room_count))
+	if ((l_roomid<0)||(l_roomid>maps.at(mapid)->room_count))
 	{
 		lua_pushstring(L,"");
 		return 1;
 	}
-	lua_pushstring(L,maps.at(mapid)->rooms[l_roomid].name);
+	lua_pushstring(L,maps.at(mapid)->rooms[l_roomid].name.c_str());
 	return 1;
 };
 
@@ -626,7 +632,7 @@ static int l_getpath(lua_State *L)
 	lua_pushstring(L,"");
 		lua_pushnumber(L,-1);
 		return 2;}
-	if ((i<3)||(i>4)||(l_to<0)||(l_to>=maps.at(mapid)->room_count)||(l_fr<0)||(l_fr>=maps.at(mapid)->room_count))
+	if ((i<3)||(i>4)||(l_to<0)||(l_to>maps.at(mapid)->room_count)||(l_fr<0)||(l_fr>maps.at(mapid)->room_count))
 	{
 		lua_pushstring(L,"");
 		lua_pushnumber(L,-1);

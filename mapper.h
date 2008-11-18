@@ -20,17 +20,25 @@ extern "C" _declspec(dllexport) int luaopen_mapper (lua_State *L);
 #endif
  struct path
 {
-	char content[pathcontent_length];	//出口的指令
+	string content;	//出口的指令
 	int delay;				//延时
 	int from;				//起点房间
 	int to;					//终点房间
-	char tag[pathtag_length];
+	string tag;
+	path()
+	{
+		content="";
+		delay=0;
+		from=0;
+		to=0;
+		tag="";
+	}
 };
  class room
 {	public:
 	room();
 	~room();
-	char name[roomname_length];
+	string name;
 	list <path> exits;
 	list <path> tagexits;
 };
@@ -38,11 +46,20 @@ struct pathresult
 {
 	string path;
 	int delay;
+	pathresult()
+	{
+		path="";
+		delay=0;
+	}
 };
 struct bindinfo
 {
 	int to;
 	int from;
+	bindinfo(){
+	to=0;
+	from=0;
+		}
 };
 
  class pathtag
@@ -50,7 +67,7 @@ struct bindinfo
 	public:
 	pathtag();
 	~pathtag();
-	char tag[pathtag_length];
+	string tag;
 	list <path> paths;
 };
 
@@ -86,8 +103,8 @@ class tags //储存tag信息的类
 	public:
 		tags();
 		~tags();
-		void addpath(char sstag[pathtag_length],struct path tmppath); /*为指定的tag添加路径*/
-		struct path getpath(char stag[pathtag_length]);
+		void addpath(string sstag,struct path tmppath); /*为指定的tag添加路径*/
+		struct path getpath(string stag);
 		list <pathtag> tag;
 };
 
@@ -114,7 +131,7 @@ class mapper
 	list <bindinfo> bindinfos;
 	char vchar[8];//文本处理中的控制字符
 	int newarea(int count);
-	void readdata(char data[infile_buff],int roomid);
+	void readdata(string data,int roomid);
 	void readexits(string data,int roomid);
 	void exit_to_path(string data,int roomid);
 	struct path makepath(string datatxt,int roomid);
