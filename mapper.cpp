@@ -479,6 +479,7 @@ static int l_openfile(lua_State *L)
 		return 1;
 		}
 	_filename = lua_tostring(L,2);
+	lua_settop(L,0);
 	lua_pushnumber(L,maps.at(mapid)->open(_filename));
 	return 1;
 };
@@ -491,6 +492,7 @@ static int l_settags(lua_State *L)
 	}
 	l_tags = lua_tostring(L,2);
 	maps.at(mapid)->settags(l_tags);
+	lua_settop(L,0);
 	return 0;
 };
 static int l_setflylist(lua_State *L)
@@ -502,6 +504,7 @@ static int l_setflylist(lua_State *L)
 	}
 	l_flylist = lua_tostring(L,2);
 	maps.at(mapid)->setflylist(l_flylist);
+	lua_settop(L,0);
 	return 0;
 }
 static int l_getroomid(lua_State *L)
@@ -511,13 +514,12 @@ static int l_getroomid(lua_State *L)
 	string l_roomname;
 	int mapid=luaL_checknumber(L,1);
 	l_roomname = lua_tostring(L,2);
-
+	lua_settop(L,0);
 	if (mapid<0||mapid>=maps.size())
 	{
 		lua_pushnumber(L,0);
 		return 1;
 	}
-	lua_settop(L,0);
 	lua_pushnumber(L,0);
 	for(i=0;i<=maps.at(mapid)->room_count;i++)
 	{
@@ -562,6 +564,7 @@ static int l_readroom(lua_State *L)
 	string l_data = lua_tostring(L,3);
 	lua_settop(L,0);
 	maps.at(mapid)->readdata(l_data,l_roomid);
+	lua_settop(L,0);
 	return 0;
 }
 static int l_getexits(lua_State *L)
@@ -569,6 +572,7 @@ static int l_getexits(lua_State *L)
 	int mapid=luaL_checknumber(L,1);
 	int l_roomid=luaL_checknumber(L,2);
 	int l_count=0;
+	lua_settop(L,0);
 	list <struct path>::iterator tmppath;
 	if (mapid<0||mapid>=maps.size()){
 		lua_pushnumber(L,0);
@@ -579,7 +583,7 @@ static int l_getexits(lua_State *L)
 		lua_pushnumber(L,0);
 		return 1;
 	}
-	lua_settop(L,0);
+
 	lua_pushnumber(L,0);
 	for (tmppath=maps.at(mapid)->rooms[l_roomid].exits.begin();tmppath!=maps.at(mapid)->rooms[l_roomid].exits.end();++tmppath)
 	{
@@ -608,6 +612,7 @@ static int l_getroomname(lua_State *L)
 {
 	int mapid=luaL_checknumber(L,1);
 	int l_roomid=luaL_checknumber(L,2);
+	lua_settop(L,0);
 	if (mapid<0||mapid>=maps.size()){
 		lua_pushstring(L,"");
 			return 1;
@@ -629,16 +634,19 @@ static int l_getpath(lua_State *L)
 	int l_fly=1;
 	int i=lua_gettop(L);
 	if (mapid<0||mapid>=maps.size()){
-	lua_pushstring(L,"");
+		lua_settop(L,0);
+		lua_pushstring(L,"");
 		lua_pushnumber(L,-1);
 		return 2;}
 	if ((i<3)||(i>4)||(l_to<0)||(l_to>maps.at(mapid)->room_count)||(l_fr<0)||(l_fr>maps.at(mapid)->room_count))
 	{
+		lua_settop(L,0);
 		lua_pushstring(L,"");
 		lua_pushnumber(L,-1);
 		return 2;
 	}
 	if (i=4) {l_fly=luaL_checknumber(L , 4);};
+	lua_settop(L,0);
 	pathresult result;
 	result=maps.at(mapid)->getpath(l_fr,l_to,l_fly);
 	lua_pushstring(L,result.path.c_str());
@@ -656,6 +664,7 @@ static int l_addpath(lua_State *L)
 	}
 	string l_path = lua_tostring(L,3);
 	maps.at(mapid)->exit_to_path(l_path,roomid);
+	lua_settop(L,0);
 	return 0;
 }
 static const luaL_reg l_mushmapper[] =
