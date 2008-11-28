@@ -224,11 +224,11 @@ void mapper::debind()
 
 void mapper::settags(string _tags)
 {
+	if (lasttag==_tags){return;};
 	list<pathtag>::iterator tmptag;;
 	string tmpstring,tmpstring2,tmpstring3;
 	int found;
 	int lastfound;
-	if (lasttag==_tags){return;};
 	lasttag=_tags;
 	debind();
 	_tags.insert(0,1,vchar[0]);
@@ -515,23 +515,22 @@ static int l_getroomid(lua_State *L)
 	int mapid=luaL_checknumber(L,1);
 	l_roomname = lua_tostring(L,2);
 	lua_settop(L,0);
+	lua_newtable(L);
 	if (mapid<0||mapid>=maps.size())
 	{
-		lua_pushnumber(L,0);
 		return 1;
 	}
-	lua_pushnumber(L,0);
 	for(i=0;i<=maps.at(mapid)->room_count;i++)
 	{
 		if (l_roomname.compare(maps.at(mapid)->rooms[i].name)==0)
 		{
 			l_count++;
+			lua_pushnumber(L,l_count);
 			lua_pushnumber(L,i);
+			lua_settable(L,1);
 		}
 	}
-	lua_pushnumber(L,l_count);
-	lua_replace(L,1);
-	return l_count+1;
+	return 1;
 }
 static int l_getid(lua_State *L)
 {
@@ -564,7 +563,6 @@ static int l_readroom(lua_State *L)
 	string l_data = lua_tostring(L,3);
 	lua_settop(L,0);
 	maps.at(mapid)->readdata(l_data,l_roomid);
-	lua_settop(L,0);
 	return 0;
 }
 static int l_getexits(lua_State *L)
@@ -573,39 +571,55 @@ static int l_getexits(lua_State *L)
 	int l_roomid=luaL_checknumber(L,2);
 	int l_count=0;
 	lua_settop(L,0);
+	lua_newtable(L);
 	list <struct path>::iterator tmppath;
 	if (mapid<0||mapid>=maps.size()){
-		lua_pushnumber(L,0);
 		return 1;
 	}
 	if ((l_roomid<0)||(l_roomid>maps.at(mapid)->room_count))
 	{
-		lua_pushnumber(L,0);
 		return 1;
 	}
-
-	lua_pushnumber(L,0);
 	for (tmppath=maps.at(mapid)->rooms[l_roomid].exits.begin();tmppath!=maps.at(mapid)->rooms[l_roomid].exits.end();++tmppath)
 	{
 		l_count++;
+		lua_pushnumber(L,l_count);
+		lua_newtable(L);
+		lua_pushnumber(L,1);
 		lua_pushstring(L,tmppath->content.c_str());
+		lua_settable(L,3);
+		lua_pushnumber(L,2);
 		lua_pushnumber(L,tmppath->to);
+		lua_settable(L,3);
+		lua_settable(L,1);
 	}
 	for (tmppath=maps.at(mapid)->rooms[l_roomid].tagexits.begin();tmppath!=maps.at(mapid)->rooms[l_roomid].tagexits.end();++tmppath)
 	{
 		l_count++;
+		lua_pushnumber(L,l_count);
+		lua_newtable(L);
+		lua_pushnumber(L,1);
 		lua_pushstring(L,tmppath->content.c_str());
+		lua_settable(L,3);
+		lua_pushnumber(L,2);
 		lua_pushnumber(L,tmppath->to);
+		lua_settable(L,3);
+		lua_settable(L,1);
 	}
 		for (tmppath=maps.at(mapid)->flylist.begin();tmppath!=maps.at(mapid)->flylist.end();++tmppath)
 	{
 		l_count++;
+		lua_pushnumber(L,l_count);
+		lua_newtable(L);
+		lua_pushnumber(L,1);
 		lua_pushstring(L,tmppath->content.c_str());
+		lua_settable(L,3);
+		lua_pushnumber(L,2);
 		lua_pushnumber(L,tmppath->to);
+		lua_settable(L,3);
+		lua_settable(L,1);
 	}
-	lua_pushnumber(L,l_count);
-	lua_replace(L,1);
-	return (l_count*2+1);
+	return 1;
 }
 
 static int l_getroomname(lua_State *L)
