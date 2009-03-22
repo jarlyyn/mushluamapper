@@ -235,7 +235,6 @@ void mapper::settags(string _tags)
 	_tags+=vchar[0];
 	tmpstring2=vchar[4];
 	tmpstring2+=vchar[5];
-	if (_tags=="") {return;}
 	for(tmptag=tags.tag.begin();tmptag!=tags.tag.end();++tmptag)
 	{
 		tmpstring=tmptag->tag;
