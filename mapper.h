@@ -122,6 +122,7 @@ class mapper
 	vector <room> rooms_back;
 	void settags(string _tags);
 	void setflylist(string flylist);
+	void clearroom(int roomid);
 	list <path> flylist;
 //	class walking walk;
 	class tags tags;

@@ -98,6 +98,38 @@ int mapper::newarea(int count)
 	}
 	return area;
 }
+void mapper::clearroom(int roomid)
+{
+	if (roomid<0||roomid>room_count) {return;}
+	rooms[roomid].name="";
+	list<path>::iterator ipath;
+	list<path>::iterator ipath2;
+	list<pathtag>::iterator tmptag;;
+	for(ipath=rooms[roomid].exits.begin();ipath!=rooms[roomid].exits.end();++ipath)
+	{
+		for(ipath2=rooms_back[ipath->to].exits.begin();ipath2!=rooms_back[ipath->to].exits.end();)
+		{
+			if((ipath2->from)==roomid){ipath2 = rooms_back[ipath->to].exits.erase(ipath2);}
+			else{++ipath2;};
+		};
+	}
+	for(ipath=rooms[roomid].tagexits.begin();ipath!=rooms[roomid].tagexits.end();++ipath)
+	{
+		for(ipath2=rooms_back[ipath->to].tagexits.begin();ipath2!=rooms_back[ipath->to].tagexits.end();)
+		{
+			if((ipath2->from)==roomid){ipath2 = rooms_back[ipath->to].tagexits.erase(ipath2);}else{++ipath2;};
+		};
+	}
+	rooms[roomid].exits.clear();
+	rooms[roomid].tagexits.clear();
+		for(tmptag=tags.tag.begin();tmptag!=tags.tag.end();++tmptag)
+	{
+		for(ipath=tmptag->paths.begin();ipath!=tmptag->paths.end();)
+		{
+			if((ipath->from)==roomid){ipath = tmptag->paths.erase(ipath);}else{++ipath;};
+		};
+	};
+};
 void mapper::readdata(string data,int roomid)
 {
 //	room_count ++;
@@ -225,7 +257,7 @@ void mapper::debind()
 void mapper::settags(string _tags)
 {
 	if (lasttag==_tags){return;};
-	list<pathtag>::iterator tmptag;;
+	list<pathtag>::iterator tmptag;
 	string tmpstring,tmpstring2,tmpstring3;
 	int found;
 	int lastfound;
@@ -551,6 +583,22 @@ static int l_newarea(lua_State *L)
 	lua_pushnumber(L,maps.at(mapid)->newarea(l_count));
 	return 1;
 }
+static int l_clearroom(lua_State *L)
+{
+	int mapid=luaL_checknumber(L,1);
+	if (mapid<0||mapid>=maps.size()){
+		lua_pushnumber(L,-1);
+		return 0;
+		}
+	int l_roomid=luaL_checknumber(L,2);
+	if ((l_roomid<0)||(l_roomid>maps.at(mapid)->room_count))
+	{
+		return 0;
+	}
+	lua_settop(L,0);
+	maps.at(mapid)->clearroom(l_roomid);
+	return 0;
+}
 static int l_readroom(lua_State *L)
 {
 	int mapid=luaL_checknumber(L,1);
@@ -561,6 +609,7 @@ static int l_readroom(lua_State *L)
 	if (l_roomid<0||l_roomid>maps.at(mapid)->room_count) {return 0;}
 	string l_data = lua_tostring(L,3);
 	lua_settop(L,0);
+	maps.at(mapid)->clearroom(l_roomid);
 	maps.at(mapid)->readdata(l_data,l_roomid);
 	return 0;
 }
@@ -693,6 +742,7 @@ static const luaL_reg l_mushmapper[] =
   {"addpath", l_addpath},
   {"newarea", l_newarea},
   {"readroom", l_readroom},
+  {"clearroom", l_clearroom},
   {NULL, NULL}
 };
 
