@@ -418,15 +418,17 @@ int walking::walk(vector <room> *rooms)
 	list <struct walkstep> newwalksteps;
 	for (istep=walksteps.begin();istep!=walksteps.end();++istep)
 	{
-		istep->delay++;
+		istep->delay--;
 		if (istep->path.to>=roadmaps.size()||istep->path.to<0){continue;};
 		if (roadmaps[istep->path.to].walked==1){continue;};
-		if (istep->delay>=istep->path.delay)
+		if (istep->delay<1)
 		{
 			roadmaps[istep->path.to].walked=1;
 			roadmaps[istep->path.to].path=istep->path;
 			if (roadmaps_back[istep->path.to].walked==1) {return istep->path.to;};
 				walkroom(rooms,istep->path.to,&newwalksteps);
+		}else{
+			newwalksteps.push_back(*istep);
 		}
 	}
 	walksteps=newwalksteps;
@@ -458,13 +460,15 @@ int walking::walk_back(vector <room> *rooms_back)
 	{
 		if (istep->path.from<0||istep->path.from>=rooms_back->size()) {continue;}
 		if (roadmaps_back[istep->path.from].walked==1){continue;};
-		istep->delay++;
-		if (istep->delay>=istep->path.delay)
+		istep->delay--;
+		if (istep->delay<1)
 		{
 			roadmaps_back[istep->path.from].walked=1;
 			roadmaps_back[istep->path.from].path=istep->path;
 			if (roadmaps[istep->path.from].walked==1) {return istep->path.from;};
 				walkroom(rooms_back,istep->path.from,&newwalksteps);
+		}else{
+			newwalksteps.push_back(*istep);
 		}
 	}
 	walksteps_back=newwalksteps;
